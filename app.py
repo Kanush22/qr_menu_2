@@ -3,12 +3,13 @@ from utils import generate_qr  # Only import generate_qr here
 from database import get_menu_items, place_order, get_orders, update_order_status, add_menu_item, update_menu_item_status, initialize_db  # Import initialize_db
 from auth import login_admin
 from datetime import datetime
+import pytz  # NEW import
 
 # Initialize database
 initialize_db()
 
 # Streamlit page config
-st.set_page_config(page_title="Nekko Upahar - QR Menu App", layout="wide")
+st.set_page_config(page_title="Ruchi Adda Restaurant - QR Menu App", layout="wide")
 
 # Navigation menu
 menu = ["Homepage", "Customer View", "Admin Panel"]
@@ -25,21 +26,24 @@ st.session_state.choice = choice
 
 # ---------------- HOMEPAGE ----------------
 if choice == "Homepage":
-    st.title("Welcome to Nekko Upahar")
+    st.title("Welcome to Ruchi Adda Restaurant")
     st.subheader("A delightful experience with our delicious meals")
-    st.image("https://via.placeholder.com/800x400.png?text=Nekko+Upahar+Restaurant", use_container_width=True)
+    st.image("https://via.placeholder.com/800x400.png?text=Ruchi+Adda+Restaurant", use_container_width=True)
     st.write("Select 'Customer View' to view the menu.")
 
 # ---------------- CUSTOMER VIEW ----------------
 elif choice == "Customer View":
     st.header("📱 Customer Menu")
 
-    # Get the current time and decide the menu section
-    current_time = datetime.now().hour
+    # Set timezone
+    local_timezone = pytz.timezone('Asia/Kolkata')  # Change to your local timezone
+
+    # Get the current time in local timezone
+    current_time = datetime.now(local_timezone).hour
     menu_section = ""
 
     # Debugging the current hour
-    st.write(f"Current hour: {current_time}")  # Debugging line
+    st.write(f"Current Local Hour: {current_time}")  # Debugging line
 
     if 7 <= current_time < 11:
         menu_section = "Breakfast"
@@ -128,5 +132,3 @@ elif choice == "Admin Panel":
         if st.button("Update Status"):
             update_menu_item_status(item_id, new_status)
             st.success(f"✅ Item #{item_id} status updated to {new_status}.")
-
-        
