@@ -129,13 +129,4 @@ elif choice == "Admin Panel":
             update_menu_item_status(item_id, new_status)
             st.success(f"✅ Item #{item_id} status updated to {new_status}.")
 
-        # Generate QR Code for tables
-        st.subheader("📎 Generate QR Code for Table")
-        qr_table_id = st.text_input("Enter Table ID to generate QR Code")
-        if st.button("Generate QR Code"):
-            if qr_table_id.strip():
-                qr_image_path = generate_qr("https://qrmenu2-kgzafuzdaybzrfhksedqbp.streamlit.app/")
-                st.image(qr_image_path, caption=f"QR Code for Table {qr_table_id}", use_container_width=True)
-                st.success("✅ QR Code generated successfully!")
-            else:
-                st.error("Please enter a valid Table ID.")
+        
