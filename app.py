@@ -12,7 +12,16 @@ st.set_page_config(page_title="Nekko Upahar - QR Menu App", layout="wide")
 
 # Navigation menu
 menu = ["Homepage", "Customer View", "Admin Panel"]
-choice = st.sidebar.selectbox("Navigate", menu)
+
+# Initialize session state for 'choice' if not already initialized
+if "choice" not in st.session_state:
+    st.session_state.choice = menu[0]  # Set default to the first menu option
+
+# Sidebar navigation
+choice = st.sidebar.selectbox("Navigate", menu, index=menu.index(st.session_state.choice))
+
+# Update session state when the choice is changed
+st.session_state.choice = choice
 
 # ---------------- HOMEPAGE ----------------
 if choice == "Homepage":
@@ -54,7 +63,7 @@ elif choice == "Customer View":
 
     if items:
         for item in items:
-            st.image(item['image_url'], width=100, use_container_width=False) # explicitly set to False or remove
+            st.image(item['image_url'], width=100, use_container_width=False)  # explicitly set to False or remove
             if st.checkbox(f"{item['name']} - ₹{item['price']}", key=f"{item['id']}"):
                 selected_items.append(item)
     else:
