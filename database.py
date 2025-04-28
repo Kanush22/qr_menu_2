@@ -41,16 +41,16 @@ def get_current_meal_category() -> Optional[str]:
 
     try:
         breakfast_start = datetime.strptime(meal_timings.get('breakfast_start', '07:00 AM'), '%I:%M %p').time()
-        breakfast_end = datetime.strptime(meal_timings.get('breakfast_end', '11:30 AM'), '%I:%M %p').time()
-        lunch_start = datetime.strptime(meal_timings.get('lunch_start', '11:30 AM'), '%I:%M %p').time()
+        breakfast_end = datetime.strptime(meal_timings.get('breakfast_end', '11:00 AM'), '%I:%M %p').time()
+        lunch_start = datetime.strptime(meal_timings.get('lunch_start', '12:00 PM'), '%I:%M %p').time()
         lunch_end = datetime.strptime(meal_timings.get('lunch_end', '04:00 PM'), '%I:%M %p').time()
-        dinner_start = datetime.strptime(meal_timings.get('dinner_start', '04:00 PM'), '%I:%M %p').time()
+        dinner_start = datetime.strptime(meal_timings.get('dinner_start', '05:00 PM'), '%I:%M %p').time()
         dinner_end = datetime.strptime(meal_timings.get('dinner_end', '10:00 PM'), '%I:%M %p').time()
     except ValueError:
         print("⚠️ Error parsing meal timings. Defaulting to standard periods.")
-        breakfast_start, breakfast_end = time(7, 0), time(11, 30)
-        lunch_start, lunch_end = time(11, 30), time(16, 0)
-        dinner_start, dinner_end = time(16, 0), time(22, 0)
+        breakfast_start, breakfast_end = time(7, 0), time(11, 0)
+        lunch_start, lunch_end = time(12, 0), time(16, 0)
+        dinner_start, dinner_end = time(17, 0), time(22, 0)
 
     if breakfast_start <= current_time < breakfast_end:
         return "Breakfast"
@@ -90,6 +90,11 @@ def update_menu_item_status(item_id: int, new_status: str) -> None:
     """Update the availability of a menu item."""
     available = 1 if new_status == "Available" else 0
     execute_query("UPDATE menu SET available = ? WHERE id = ?", (available, item_id))
+
+def delete_menu_item_by_name(item_name: str) -> None:
+    """Delete a menu item based on its name."""
+    execute_query("DELETE FROM menu WHERE name = ?", (item_name,))
+    print(f"Menu item with name '{item_name}' deleted.")
 
 # ---------------- ORDER MANAGEMENT ----------------
 def place_order(table_id: str, items: List[Dict[str, Any]], instructions: str) -> None:
@@ -200,23 +205,21 @@ def initialize_db() -> None:
         # Set default open time to 7:00 AM
         if not fetch_all("SELECT * FROM timings WHERE id = 1"):
             c.execute("INSERT INTO timings (open_time, close_time) VALUES (?, ?)", ('07:00 AM', '10:00 PM'))
-        else:
-            c.execute("UPDATE timings SET open_time = ? WHERE id = 1", ('07:00 AM',))
 
-        # Set default breakfast start time to 7:00 AM
+        # Set default meal timings to standard periods
         if not fetch_all("SELECT * FROM meal_timings WHERE id = 1"):
             c.execute(
                 """INSERT INTO meal_timings
                     (breakfast_start, breakfast_end, lunch_start, lunch_end, dinner_start, dinner_end)
                     VALUES (?, ?, ?, ?, ?, ?)""",
-                ('07:00 AM', '11:30 AM', '11:30 AM', '04:00 PM', '04:00 PM', '10:00 PM')
+                ('07:00 AM', '11:00 AM', '12:00 PM', '04:00 PM', '05:00 PM', '10:00 PM')
             )
-        else:
-            c.execute("UPDATE meal_timings SET breakfast_start = ? WHERE id = 1", ('07:00 AM',))
 
+        # Insert default admin user if not already exists
         if not fetch_all("SELECT * FROM users WHERE username = 'admin'"):
             c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", ('admin', '1234', 'admin'))
 
+        # Initialize menu if empty
         if not fetch_all("SELECT * FROM menu LIMIT 1"):
             seed_menu_items(c)
 
@@ -226,24 +229,29 @@ def initialize_db() -> None:
 def seed_menu_items(c: sqlite3.Cursor) -> None:
     """Insert default menu items if menu table is empty."""
     menu_items = [
-        ("Breakfast", "Masala Dosa", "", 50, "https://i.imgur.com/z9b1ulR.jpg", "Available"),
-        ("Breakfast", "Idli Vada Sambar", "", 40, "https://i.imgur.com/xsOvSBZ.jpg", "Available"),
-        ("Breakfast", "Upma", "", 30, "https://i.imgur.com/DqOcHzo.jpg", "Available"),
-        ("Breakfast", "Medu Vada", "", 35, "https://i.imgur.com/YvRaEzV.jpg", "Available"),
-        ("Breakfast", "Pongal", "", 45, "https://i.imgur.com/j2CcoBt.jpg", "Available"),
-        ("Breakfast", "Rava Kesari", "", 25, "https://i.imgur.com/xK9HOVF.jpg", "Available"),
-        ("Breakfast", "Poori Kurma", "", 50, "https://i.imgur.com/PEQ5r5N.jpg", "Available"),
-        ("Breakfast", "Uttapam", "", 40, "https://i.imgur.com/MzN7cWS.jpg", "Available"),
-        ("Lunch", "Vegetable Biryani", "", 80, "https://i.imgur.com/zUrr0Pi.jpg", "Available"),
-        ("Lunch", "Paneer Butter Masala", "", 90, "https://i.imgur.com/WpS6Y5L.jpg", "Available"),
-        ("Lunch", "Chole Bhature", "", 75, "https://i.imgur.com/J67G7bq.jpg", "Available"),
-        ("Lunch", "Dal Tadka", "", 60, "https://i.imgur.com/zvHRh6T.jpg", "Available"),
-        ("Lunch", "Aloo Paratha", "", 50, "https://i.imgur.com/M61r4nT.jpg", "Available"),
-        ("Dinner", "Paneer Tikka", "", 120, "https://i.imgur.com/jzUlGQo.jpg", "Available"),
-        ("Dinner", "Tandoori Roti", "", 30, "https://i.imgur.com/hOtcjZh.jpg", "Available"),
-        ("Dinner", "Butter Naan", "", 35, "https://i.imgur.com/TLNNu6I.jpg", "Available"),
-        ("Dinner", "Mushroom Masala", "", 100, "https://i.imgur.com/RoJhAN0.jpg", "Available"),
-        ("Dinner", "Pasta Alfredo", "", 150, "https://i.imgur.com/lZpgyke.jpg", "Available"),
+        # Breakfast items
+        ("Breakfast", "Masala Dosa", "Crispy dosa with spiced potato filling, served with chutney and sambar.", 50, "https://i.imgur.com/z9b1ulR.jpg", "Available"),
+        ("Breakfast", "Idli Vada Sambar", "Soft idlis with crispy vadas, served with sambar and chutney.", 40, "https://i.imgur.com/xsOvSBZ.jpg", "Available"),
+        ("Breakfast", "Upma", "South Indian semolina dish cooked with vegetables and spices.", 30, "https://i.imgur.com/DqOcHzo.jpg", "Available"),
+        ("Breakfast", "Medu Vada", "Crispy fried lentil doughnuts, served with sambar and chutney.", 35, "https://i.imgur.com/YvRaEzV.jpg", "Available"),
+        ("Breakfast", "Pongal", "Rice and lentil dish flavored with black pepper and ginger.", 45, "https://i.imgur.com/j2CcoBt.jpg", "Available"),
+        ("Breakfast", "Rava Kesari", "Sweet semolina dish with ghee, dry fruits, and cardamom.", 25, "https://i.imgur.com/xK9HOVF.jpg", "Available"),
+        ("Breakfast", "Poori Kurma", "Fried puffed bread served with a spicy vegetable curry.", 50, "https://i.imgur.com/PEQ5r5N.jpg", "Available"),
+        ("Breakfast", "Uttapam", "Thick pancake with toppings like onions, tomatoes, and chilies.", 40, "https://i.imgur.com/MzN7cWS.jpg", "Available"),
+
+        # Lunch items
+        ("Lunch", "Vegetable Biryani", "Aromatic rice with mixed vegetables and spices, served with raita.", 80, "https://i.imgur.com/zUrr0Pi.jpg", "Available"),
+        ("Lunch", "Paneer Butter Masala", "Soft paneer cubes cooked in a rich and creamy tomato-based sauce.", 90, "https://i.imgur.com/WpS6Y5L.jpg", "Available"),
+        ("Lunch", "Chole Bhature", "Chickpea curry served with fluffy fried bread (bhature).", 75, "https://i.imgur.com/J67G7bq.jpg", "Available"),
+        ("Lunch", "Dal Tadka", "Yellow lentils cooked with tempering of garlic, cumin, and ghee.", 60, "https://i.imgur.com/zvHRh6T.jpg", "Available"),
+        ("Lunch", "Aloo Paratha", "Stuffed flatbread with spiced mashed potatoes, served with yogurt and pickle.", 50, "https://i.imgur.com/M61r4nT.jpg", "Available"),
+
+        # Dinner items
+        ("Dinner", "Paneer Tikka", "Grilled paneer marinated with yogurt and spices, served with mint chutney.", 120, "https://i.imgur.com/jzUlGQo.jpg", "Available"),
+        ("Dinner", "Tandoori Roti", "Soft, unleavened flatbread baked in a clay oven.", 30, "https://i.imgur.com/hOtcjZh.jpg", "Available"),
+        ("Dinner", "Butter Naan", "Soft, buttery flatbread, baked in a tandoor, perfect with curries.", 35, "https://i.imgur.com/TLNNu6I.jpg", "Available"),
+        ("Dinner", "Mushroom Masala", "Mushrooms cooked in a spiced tomato gravy, served with naan or rice.", 100, "https://i.imgur.com/RoJhAN0.jpg", "Available"),
+        ("Dinner", "Pasta Alfredo", "Creamy white sauce pasta with garlic and parmesan cheese.", 150, "https://i.imgur.com/lZpgyke.jpg", "Available"),
     ]
 
     for category, name, description, price, image_url, status in menu_items:
@@ -253,7 +261,6 @@ def seed_menu_items(c: sqlite3.Cursor) -> None:
             (category, name, description, price, image_url, available)
         )
     print("✅ Seed menu items added.")
-
 
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
