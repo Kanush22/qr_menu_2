@@ -63,21 +63,21 @@ elif choice == "Customer View":
         st.stop()
 
     st.success(f"✅ Now Serving: **{menu_section}** Menu")
-    st.write(f"**DEBUG - Menu Section:** {menu_section}")  # DEBUG
+    # st.write(f"**DEBUG - Menu Section:** {menu_section}")  # DEBUG (REMOVED)
 
     # Fetch all menu items
     all_items = get_menu_items()
-    st.write(f"**DEBUG - All Items Fetched:** {all_items}")  # DEBUG
+    # st.write(f"**DEBUG - All Items Fetched:** {all_items}")  # DEBUG (REMOVED)
 
     # Filter items for the current time and availability
     available_items = []
     if all_items:
         for item in all_items:
-            st.write(f"**DEBUG - Item Category:** {item.get('category')}, **Available:** {item.get('available')}") # DEBUG
+            # st.write(f"**DEBUG - Item Category:** {item.get('category')}, **Available:** {item.get('available')}") # DEBUG (REMOVED)
             if item.get('category') == menu_section and item.get('available') == 1:
                 available_items.append(item)
 
-    st.write(f"**DEBUG - Available Items (after filter):** {available_items}")  # DEBUG
+    # st.write(f"**DEBUG - Available Items (after filter):** {available_items}")  # DEBUG (REMOVED)
 
     selected_items = []
 
