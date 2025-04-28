@@ -36,17 +36,15 @@ elif choice == "Customer View":
     st.header("📱 Customer Menu")
 
     # Set timezone
-    local_timezone = pytz.timezone('Asia/Kolkata')  # Indian time
+    local_timezone = pytz.timezone('Asia/Kolkata')
 
-    # Get the current time in local timezone
+    # Get the current time
     now = datetime.now(local_timezone)
     current_hour = now.hour
     formatted_time = now.strftime("%I:%M %p")  # 12-hour format
 
-    # Display Current Time
     st.markdown(f"### 🕒 Current Time: **{formatted_time}**")
 
-    # Display Restaurant Timings
     st.markdown("""
     ### 🍽️ Restaurant Timings:
     - **Breakfast**: 07:00 AM — 11:00 AM
@@ -66,29 +64,40 @@ elif choice == "Customer View":
         st.warning("🚫 The restaurant is closed. Please come back during operational hours.")
         st.stop()
 
-    # Inform about available Menu
     st.success(f"✅ Now Serving: **{menu_section}** Menu")
 
-    # Fetch the menu items
-    all_items = get_menu_items(respect_time=False)  # Fetch all items
-    items = [item for item in all_items if item['category'] == menu_section and item['status'] == 'Available']
+    # Fetch all menu items
+    all_items = get_menu_items(respect_time=False)
+
+    # Handle missing keys safely
+    items = [
+        item for item in all_items
+        if item.get('category') == menu_section and item.get('status') == 'Available'
+    ]
 
     selected_items = []
 
     if items:
         for item in items:
-            st.image(item['image_url'], width=100, use_container_width=False)
-            if st.checkbox(f"{item['name']} - ₹{item['price']}", key=f"{item['id']}"):
+            st.image(item.get('image_url', 'https://via.placeholder.com/100'), width=100, use_container_width=False)
+            if st.checkbox(f"{item.get('name', 'Unknown Item')} - ₹{item.get('price', 0)}", key=f"{item.get('id', 'unknown')}"):
                 selected_items.append(item)
     else:
         st.warning(f"No **{menu_section}** items available currently. Please check back later!")
 
-    special_instructions = st.text_area("Special Instructions")
+    st.markdown("---")
+
+    # NEW: Customer Table Input
+    table_id = st.text_input("Enter Your Table Number", placeholder="e.g., T5 or Table 7")
+
+    special_instructions = st.text_area("Special Instructions (Optional)")
 
     if st.button("Place Order"):
-        if selected_items:
-            place_order(table_id="CustomerTable", items=selected_items, instructions=special_instructions)
-            st.success("✅ Order placed successfully!")
+        if not table_id.strip():
+            st.error("⚠️ Please enter your Table Number before placing an order.")
+        elif selected_items:
+            place_order(table_id=table_id.strip(), items=selected_items, instructions=special_instructions)
+            st.success(f"✅ Order placed successfully from **Table {table_id.strip()}**!")
         else:
             st.warning("⚠️ Please select at least one item to order.")
 
@@ -97,30 +106,30 @@ elif choice == "Admin Panel":
     if login_admin():
         st.success("✅ Logged in as Admin")
 
-        # Admin's Restaurant Dashboard
         st.header("Restaurant Dashboard")
 
-        # Fetch and manage orders
+        # Fetch orders
         orders = get_orders(status="Pending")
 
         if not orders:
             st.info("No pending orders yet.")
         else:
             for order in orders:
-                with st.expander(f"Order #{order['id']} | Table {order['table_id']}"):
-                    st.markdown(f"**Items**: {order['items']}")
-                    st.markdown(f"**Instructions**: {order['instructions']}")
-                    st.markdown(f"**Status**: {order['status']}")
-                    st.markdown(f"**Time**: {order['timestamp']}")
+                with st.expander(f"Order #{order.get('id', 'Unknown')} | Table {order.get('table_id', 'Unknown')}"):
+                    st.markdown(f"**Items**: {order.get('items', 'No items')}")
+                    st.markdown(f"**Instructions**: {order.get('instructions', 'No instructions')}")
+                    st.markdown(f"**Status**: {order.get('status', 'Unknown')}")
+                    st.markdown(f"**Time**: {order.get('timestamp', 'Unknown time')}")
 
-                    if st.button("Mark as Served", key=f"serve_{order['id']}"):
+                    if st.button("Mark as Served", key=f"serve_{order.get('id', '')}"):
                         update_order_status(order['id'], "Served")
-                        st.success(f"✅ Order #{order['id']} marked as Served")
+                        st.success(f"✅ Order #{order.get('id', '')} marked as Served")
 
-        # Manage menu items (Add new items or update status)
+        st.markdown("---")
+
+        # Manage Menu Items
         st.subheader("Manage Menu Items")
 
-        # Add Menu Item
         name = st.text_input("Item Name")
         price = st.number_input("Price (₹)", min_value=0.0)
         image_url = st.text_input("Image URL")
