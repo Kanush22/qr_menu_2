@@ -1,9 +1,9 @@
 import streamlit as st
 from utils import generate_qr  # Only import generate_qr here
-from database import get_menu_items, place_order, get_orders, update_order_status, add_menu_item, update_menu_item_status, initialize_db  # Import initialize_db
+from database import get_menu_items, place_order, get_orders, update_order_status, add_menu_item, update_menu_item_status, initialize_db
 from auth import login_admin
 from datetime import datetime
-import pytz  # NEW import
+import pytz  # Import timezone
 
 # Initialize database
 initialize_db()
@@ -36,51 +36,61 @@ elif choice == "Customer View":
     st.header("📱 Customer Menu")
 
     # Set timezone
-    local_timezone = pytz.timezone('Asia/Kolkata')  # Change to your local timezone
+    local_timezone = pytz.timezone('Asia/Kolkata')  # Indian time
 
     # Get the current time in local timezone
-    current_time = datetime.now(local_timezone).hour
+    now = datetime.now(local_timezone)
+    current_hour = now.hour
+    formatted_time = now.strftime("%I:%M %p")  # 12-hour format
+
+    # Display Current Time
+    st.markdown(f"### 🕒 Current Time: **{formatted_time}**")
+
+    # Display Restaurant Timings
+    st.markdown("""
+    ### 🍽️ Restaurant Timings:
+    - **Breakfast**: 07:00 AM — 11:00 AM
+    - **Lunch**: 12:00 PM — 04:00 PM
+    - **Dinner**: 05:00 PM — 10:00 PM
+    """)
+
     menu_section = ""
 
-    # Debugging the current hour
-    st.write(f"Current Local Hour: {current_time}")  # Debugging line
-
-    if 7 <= current_time < 11:
+    if 7 <= current_hour < 11:
         menu_section = "Breakfast"
-    elif 12 <= current_time < 16:
+    elif 12 <= current_hour < 16:
         menu_section = "Lunch"
-    elif 17 <= current_time < 22:
+    elif 17 <= current_hour < 22:
         menu_section = "Dinner"
     else:
         st.warning("🚫 The restaurant is closed. Please come back during operational hours.")
         st.stop()
 
-    st.write(f"🍽️ **{menu_section} Menu** (Available from {7 if menu_section == 'Breakfast' else 12 if menu_section == 'Lunch' else 17} - {11 if menu_section == 'Breakfast' else 16 if menu_section == 'Lunch' else 22} hrs)")
+    # Inform about available Menu
+    st.success(f"✅ Now Serving: **{menu_section}** Menu")
 
-    # Fetch the menu items for the specific time slot (Breakfast, Lunch, Dinner)
-    items = get_menu_items(respect_time=True)  # Ensure respect_time is True to filter by the current meal category
-
-    # Debugging to check fetched items
-    st.write(f"Fetched {len(items)} items for the current time.")  # More accurate debug message
+    # Fetch the menu items
+    all_items = get_menu_items(respect_time=False)  # Fetch all items
+    items = [item for item in all_items if item['category'] == menu_section and item['status'] == 'Available']
 
     selected_items = []
 
     if items:
         for item in items:
-            st.image(item['image_url'], width=100, use_container_width=False)  # explicitly set to False or remove
+            st.image(item['image_url'], width=100, use_container_width=False)
             if st.checkbox(f"{item['name']} - ₹{item['price']}", key=f"{item['id']}"):
                 selected_items.append(item)
     else:
-        st.warning("No menu items available at this time.")
+        st.warning(f"No **{menu_section}** items available currently. Please check back later!")
 
     special_instructions = st.text_area("Special Instructions")
 
     if st.button("Place Order"):
         if selected_items:
             place_order(table_id="CustomerTable", items=selected_items, instructions=special_instructions)
-            st.success("✅ Order placed!")
+            st.success("✅ Order placed successfully!")
         else:
-            st.warning("Please select at least one item to order.")
+            st.warning("⚠️ Please select at least one item to order.")
 
 # ---------------- ADMIN PANEL ----------------
 elif choice == "Admin Panel":
@@ -94,7 +104,7 @@ elif choice == "Admin Panel":
         orders = get_orders(status="Pending")
 
         if not orders:
-            st.info("No orders yet.")
+            st.info("No pending orders yet.")
         else:
             for order in orders:
                 with st.expander(f"Order #{order['id']} | Table {order['table_id']}"):
@@ -122,7 +132,7 @@ elif choice == "Admin Panel":
                 add_menu_item(name, price, image_url, category, status)
                 st.success(f"✅ '{name}' added to {category} menu.")
             else:
-                st.error("Please provide name and image URL.")
+                st.error("⚠️ Please provide both Item Name and Image URL.")
 
         # Update Item Status
         st.subheader("🔄 Update Menu Item Status")
