@@ -66,9 +66,9 @@ elif choice == "Customer View":
     st.success(f"✅ Now Serving: **{menu_section}** Menu")
 
     # Fetch all menu items
-    all_items = get_menu_items(respect_time=False)
+    all_items = get_menu_items()
 
-    # Filter items safely
+    # Filter items for the current time and availability
     available_items = [
         item for item in all_items
         if item.get('category') == menu_section and item.get('status') == 'Available'
@@ -157,4 +157,3 @@ elif choice == "Admin Panel":
         if st.button("Update Item Status"):
             update_menu_item_status(item_id=item_id, new_status=new_status)
             st.success(f"✅ Item ID {item_id} updated to {new_status}.")
-

@@ -30,17 +30,17 @@ def get_current_meal_category() -> Optional[str]:
     meal_timings = get_meal_timings()
 
     try:
-        open_time = datetime.strptime(restaurant_timings.get('open_time', '08:00 AM'), '%I:%M %p').time()
+        open_time = datetime.strptime(restaurant_timings.get('open_time', '07:00 AM'), '%I:%M %p').time()
         close_time = datetime.strptime(restaurant_timings.get('close_time', '10:00 PM'), '%I:%M %p').time()
     except ValueError:
-        print("⚠️ Error parsing restaurant open/close times. Defaulting to 8:00 AM - 10:00 PM.")
-        open_time, close_time = time(8, 0), time(22, 0)
+        print("⚠️ Error parsing restaurant open/close times. Defaulting to 7:00 AM - 10:00 PM.")
+        open_time, close_time = time(7, 0), time(22, 0)
 
-    if current_time < open_time or current_time > close_time:
+    if current_time < open_time or current_time >= close_time:
         return None
 
     try:
-        breakfast_start = datetime.strptime(meal_timings.get('breakfast_start', '08:00 AM'), '%I:%M %p').time()
+        breakfast_start = datetime.strptime(meal_timings.get('breakfast_start', '07:00 AM'), '%I:%M %p').time()
         breakfast_end = datetime.strptime(meal_timings.get('breakfast_end', '11:30 AM'), '%I:%M %p').time()
         lunch_start = datetime.strptime(meal_timings.get('lunch_start', '11:30 AM'), '%I:%M %p').time()
         lunch_end = datetime.strptime(meal_timings.get('lunch_end', '04:00 PM'), '%I:%M %p').time()
@@ -48,7 +48,7 @@ def get_current_meal_category() -> Optional[str]:
         dinner_end = datetime.strptime(meal_timings.get('dinner_end', '10:00 PM'), '%I:%M %p').time()
     except ValueError:
         print("⚠️ Error parsing meal timings. Defaulting to standard periods.")
-        breakfast_start, breakfast_end = time(8, 0), time(11, 30)
+        breakfast_start, breakfast_end = time(7, 0), time(11, 30)
         lunch_start, lunch_end = time(11, 30), time(16, 0)
         dinner_start, dinner_end = time(16, 0), time(22, 0)
 
@@ -143,10 +143,10 @@ def update_meal_timings(
     """Update meal timings."""
     execute_query(
         """UPDATE meal_timings SET
-           breakfast_start = ?, breakfast_end = ?,
-           lunch_start = ?, lunch_end = ?,
-           dinner_start = ?, dinner_end = ?
-           WHERE id = 1""",
+            breakfast_start = ?, breakfast_end = ?,
+            lunch_start = ?, lunch_end = ?,
+            dinner_start = ?, dinner_end = ?
+            WHERE id = 1""",
         (breakfast_start, breakfast_end, lunch_start, lunch_end, dinner_start, dinner_end),
     )
 
@@ -197,16 +197,22 @@ def initialize_db() -> None:
         c = conn.cursor()
         c.executescript(schema)
 
+        # Set default open time to 7:00 AM
         if not fetch_all("SELECT * FROM timings WHERE id = 1"):
-            c.execute("INSERT INTO timings (open_time, close_time) VALUES (?, ?)", ('08:00 AM', '10:00 PM'))
+            c.execute("INSERT INTO timings (open_time, close_time) VALUES (?, ?)", ('07:00 AM', '10:00 PM'))
+        else:
+            c.execute("UPDATE timings SET open_time = ? WHERE id = 1", ('07:00 AM',))
 
+        # Set default breakfast start time to 7:00 AM
         if not fetch_all("SELECT * FROM meal_timings WHERE id = 1"):
             c.execute(
                 """INSERT INTO meal_timings
-                   (breakfast_start, breakfast_end, lunch_start, lunch_end, dinner_start, dinner_end)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                ('08:00 AM', '11:30 AM', '11:30 AM', '04:00 PM', '04:00 PM', '10:00 PM')
+                    (breakfast_start, breakfast_end, lunch_start, lunch_end, dinner_start, dinner_end)
+                    VALUES (?, ?, ?, ?, ?, ?)""",
+                ('07:00 AM', '11:30 AM', '11:30 AM', '04:00 PM', '04:00 PM', '10:00 PM')
             )
+        else:
+            c.execute("UPDATE meal_timings SET breakfast_start = ? WHERE id = 1", ('07:00 AM',))
 
         if not fetch_all("SELECT * FROM users WHERE username = 'admin'"):
             c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", ('admin', '1234', 'admin'))
@@ -220,31 +226,31 @@ def initialize_db() -> None:
 def seed_menu_items(c: sqlite3.Cursor) -> None:
     """Insert default menu items if menu table is empty."""
     menu_items = [
-        ("Breakfast", "Masala Dosa", 50, "https://i.imgur.com/z9b1ulR.jpg", "Available"),
-        ("Breakfast", "Idli Vada Sambar", 40, "https://i.imgur.com/xsOvSBZ.jpg", "Available"),
-        ("Breakfast", "Upma", 30, "https://i.imgur.com/DqOcHzo.jpg", "Available"),
-        ("Breakfast", "Medu Vada", 35, "https://i.imgur.com/YvRaEzV.jpg", "Available"),
-        ("Breakfast", "Pongal", 45, "https://i.imgur.com/j2CcoBt.jpg", "Available"),
-        ("Breakfast", "Rava Kesari", 25, "https://i.imgur.com/xK9HOVF.jpg", "Available"),
-        ("Breakfast", "Poori Kurma", 50, "https://i.imgur.com/PEQ5r5N.jpg", "Available"),
-        ("Breakfast", "Uttapam", 40, "https://i.imgur.com/MzN7cWS.jpg", "Available"),
-        ("Lunch", "Vegetable Biryani", 80, "https://i.imgur.com/zUrr0Pi.jpg", "Available"),
-        ("Lunch", "Paneer Butter Masala", 90, "https://i.imgur.com/WpS6Y5L.jpg", "Available"),
-        ("Lunch", "Chole Bhature", 75, "https://i.imgur.com/J67G7bq.jpg", "Available"),
-        ("Lunch", "Dal Tadka", 60, "https://i.imgur.com/zvHRh6T.jpg", "Available"),
-        ("Lunch", "Aloo Paratha", 50, "https://i.imgur.com/M61r4nT.jpg", "Available"),
-        ("Dinner", "Paneer Tikka", 120, "https://i.imgur.com/jzUlGQo.jpg", "Available"),
-        ("Dinner", "Tandoori Roti", 30, "https://i.imgur.com/hOtcjZh.jpg", "Available"),
-        ("Dinner", "Butter Naan", 35, "https://i.imgur.com/TLNNu6I.jpg", "Available"),
-        ("Dinner", "Mushroom Masala", 100, "https://i.imgur.com/RoJhAN0.jpg", "Available"),
-        ("Dinner", "Pasta Alfredo", 150, "https://i.imgur.com/lZpgyke.jpg", "Available"),
+        ("Breakfast", "Masala Dosa", "", 50, "https://i.imgur.com/z9b1ulR.jpg", "Available"),
+        ("Breakfast", "Idli Vada Sambar", "", 40, "https://i.imgur.com/xsOvSBZ.jpg", "Available"),
+        ("Breakfast", "Upma", "", 30, "https://i.imgur.com/DqOcHzo.jpg", "Available"),
+        ("Breakfast", "Medu Vada", "", 35, "https://i.imgur.com/YvRaEzV.jpg", "Available"),
+        ("Breakfast", "Pongal", "", 45, "https://i.imgur.com/j2CcoBt.jpg", "Available"),
+        ("Breakfast", "Rava Kesari", "", 25, "https://i.imgur.com/xK9HOVF.jpg", "Available"),
+        ("Breakfast", "Poori Kurma", "", 50, "https://i.imgur.com/PEQ5r5N.jpg", "Available"),
+        ("Breakfast", "Uttapam", "", 40, "https://i.imgur.com/MzN7cWS.jpg", "Available"),
+        ("Lunch", "Vegetable Biryani", "", 80, "https://i.imgur.com/zUrr0Pi.jpg", "Available"),
+        ("Lunch", "Paneer Butter Masala", "", 90, "https://i.imgur.com/WpS6Y5L.jpg", "Available"),
+        ("Lunch", "Chole Bhature", "", 75, "https://i.imgur.com/J67G7bq.jpg", "Available"),
+        ("Lunch", "Dal Tadka", "", 60, "https://i.imgur.com/zvHRh6T.jpg", "Available"),
+        ("Lunch", "Aloo Paratha", "", 50, "https://i.imgur.com/M61r4nT.jpg", "Available"),
+        ("Dinner", "Paneer Tikka", "", 120, "https://i.imgur.com/jzUlGQo.jpg", "Available"),
+        ("Dinner", "Tandoori Roti", "", 30, "https://i.imgur.com/hOtcjZh.jpg", "Available"),
+        ("Dinner", "Butter Naan", "", 35, "https://i.imgur.com/TLNNu6I.jpg", "Available"),
+        ("Dinner", "Mushroom Masala", "", 100, "https://i.imgur.com/RoJhAN0.jpg", "Available"),
+        ("Dinner", "Pasta Alfredo", "", 150, "https://i.imgur.com/lZpgyke.jpg", "Available"),
     ]
-    
-    for category, name, price, image_url, status in menu_items:
+
+    for category, name, description, price, image_url, status in menu_items:
         available = 1 if status == "Available" else 0
         c.execute(
-            "INSERT INTO menu (category, name, price, image_url, available) VALUES (?, ?, ?, ?, ?)",
-            (category, name, price, image_url, available)
+            "INSERT INTO menu (category, name, description, price, image_url, available) VALUES (?, ?, ?, ?, ?, ?)",
+            (category, name, description, price, image_url, available)
         )
     print("✅ Seed menu items added.")
 
