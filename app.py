@@ -52,7 +52,6 @@ elif choice == "Customer View":
     # Determine current menu section
     current_hour = now.hour
     menu_section = None
-
     if 7 <= current_hour < 11:
         menu_section = "Breakfast"
     elif 12 <= current_hour < 16:
@@ -64,21 +63,26 @@ elif choice == "Customer View":
         st.stop()
 
     st.success(f"✅ Now Serving: **{menu_section}** Menu")
+    st.write(f"**DEBUG - Menu Section:** {menu_section}")  # DEBUG
 
     # Fetch all menu items
     all_items = get_menu_items()
+    st.write(f"**DEBUG - All Items Fetched:** {all_items}")  # DEBUG
 
     # Filter items for the current time and availability
-    available_items = [
-        item for item in all_items
-        if item.get('category') == menu_section and item.get('status') == 'Available'
-    ]
+    available_items = []
+    if all_items:
+        for item in all_items:
+            st.write(f"**DEBUG - Item Category:** {item.get('category')}, **Status:** {item.get('status')}") # DEBUG
+            if item.get('category') == menu_section and item.get('status') == 'Available':
+                available_items.append(item)
+
+    st.write(f"**DEBUG - Available Items (after filter):** {available_items}")  # DEBUG
 
     selected_items = []
 
     if available_items:
         st.subheader("📝 Select Items to Order:")
-
         for item in available_items:
             with st.container():
                 st.image(item.get('image_url', 'https://via.placeholder.com/150'), width=120)
@@ -89,6 +93,8 @@ elif choice == "Customer View":
         st.info("Admins: Please add menu items under 'Admin Panel'!")
 
     st.markdown("---")
+
+    # ... (rest of your Customer View code) ...
 
     # Table number input
     table_id = st.text_input("Enter Your Table Number", placeholder="Eg: T1, T2...")
