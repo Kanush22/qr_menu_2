@@ -73,8 +73,8 @@ elif choice == "Customer View":
     available_items = []
     if all_items:
         for item in all_items:
-            st.write(f"**DEBUG - Item Category:** {item.get('category')}, **Available:** {item.get('available')}") # DEBUG - Corrected key to 'available'
-            if item.get('category') == menu_section and item.get('available') == 1: # Corrected check to 'available' == 1
+            st.write(f"**DEBUG - Item Category:** {item.get('category')}, **Available:** {item.get('available')}") # DEBUG
+            if item.get('category') == menu_section and item.get('available') == 1:
                 available_items.append(item)
 
     st.write(f"**DEBUG - Available Items (after filter):** {available_items}")  # DEBUG
